@@ -55,6 +55,8 @@ def main():
     # If no command is provided, default to 'serve'
     if not args.command:
         args.command = "serve"
+        # Also set default transport since we're defaulting to serve
+        args.transport = "stdio"
     
     if args.command == "version":
         from zotero_mcp._version import __version__
@@ -63,13 +65,17 @@ def main():
     
     elif args.command == "setup":
         from zotero_mcp.setup_helper import main as setup_main
-        sys.exit(setup_main())
+        sys.exit(setup_main(args))
     
     elif args.command == "serve":
-        if args.transport == "stdio":
+        # Get transport with a default value if not specified
+        transport = getattr(args, "transport", "stdio")
+        if transport == "stdio":
             mcp.run(transport="stdio")
-        elif args.transport == "sse":
-            mcp.run(transport="sse", host=args.host, port=args.port)
+        elif transport == "sse":
+            host = getattr(args, "host", "localhost") 
+            port = getattr(args, "port", 8000)
+            mcp.run(transport="sse", host=host, port=port)
 
 
 if __name__ == "__main__":
