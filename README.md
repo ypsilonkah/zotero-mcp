@@ -24,7 +24,7 @@ To install Zotero MCP for Claude Desktop automatically via [Smithery](https://sm
 npx -y @smithery/cli install @54yyyu/zotero-mcp --client claude
 ```
 
-### Manual Installation
+### Installing via pip
 ```bash
 pip install git+https://github.com/54yyyu/zotero-mcp.git
 zotero-mcp setup  # Auto-configure for Claude Desktop
