@@ -240,19 +240,26 @@ def get_collections(
         zot = get_zotero_client()
         
         collections = zot.collections(limit=limit)
-        if not collections:
-            return "No collections found in your Zotero library."
         
-        # Format collections as markdown
+        # Always return the header, even if empty
         output = ["# Zotero Collections", ""]
         
-        # First create a mapping of collection IDs to their data
+        if not collections:
+            output.append("No collections found in your Zotero library.")
+            return "\n".join(output)
+        
+        # Create a mapping of collection IDs to their data
         collection_map = {c["key"]: c for c in collections}
         
-        # Then create a mapping of parent to child collections
+        # Create a mapping of parent to child collections
+        # Only add entries for collections that actually exist
         hierarchy = {}
         for coll in collections:
             parent_key = coll["data"].get("parentCollection")
+            # Handle various representations of "no parent"
+            if parent_key in ["", None] or not parent_key:
+                parent_key = None  # Normalize to None
+            
             if parent_key not in hierarchy:
                 hierarchy[parent_key] = []
             hierarchy[parent_key].append(coll["key"])
@@ -264,29 +271,39 @@ def get_collections(
             
             coll = collection_map[key]
             name = coll["data"].get("name", "Unnamed Collection")
-            key = coll["key"]
             
             # Create indentation for hierarchy
             indent = "  " * level
             lines = [f"{indent}- **{name}** (Key: {key})"]
             
-            # Add children
+            # Add children if they exist
             child_keys = hierarchy.get(key, [])
-            for child_key in child_keys:
+            for child_key in sorted(child_keys):  # Sort for consistent output
                 lines.extend(format_collection(child_key, level + 1))
             
             return lines
         
-        # Start with top-level collections (those with no parent or empty parent)
-        top_level = hierarchy.get("", []) + hierarchy.get(None, [])
-        for key in top_level:
-            output.extend(format_collection(key))
+        # Start with top-level collections (those with None as parent)
+        top_level_keys = hierarchy.get(None, [])
+        
+        if not top_level_keys:
+            # If no clear hierarchy, just list all collections
+            output.append("Collections (flat list):")
+            for coll in sorted(collections, key=lambda x: x["data"].get("name", "")):
+                name = coll["data"].get("name", "Unnamed Collection")
+                key = coll["key"]
+                output.append(f"- **{name}** (Key: {key})")
+        else:
+            # Display hierarchical structure
+            for key in sorted(top_level_keys):
+                output.extend(format_collection(key))
         
         return "\n".join(output)
     
     except Exception as e:
         ctx.error(f"Error fetching collections: {str(e)}")
-        return f"Error fetching collections: {str(e)}"
+        error_msg = f"Error fetching collections: {str(e)}"
+        return f"# Zotero Collections\n\n{error_msg}"
 
 
 @mcp.tool(
