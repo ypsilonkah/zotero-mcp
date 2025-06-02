@@ -59,6 +59,8 @@ def search_items(
         tag_condition_str = ""
         if tag:
             tag_condition_str = f" with tags: '{', '.join(tag)}'"    
+        else :
+            tag = []
 
         ctx.info(f"Searching Zotero for '{query}'{tag_condition_str}")
         zot = get_zotero_client()
