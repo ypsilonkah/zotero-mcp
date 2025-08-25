@@ -118,8 +118,11 @@ zotero-mcp setup --semantic-config-only
 After setup, initialize your search database:
 
 ```bash
-# Build the semantic search database
+# Build the semantic search database (fast, metadata-only)
 zotero-mcp update-db
+
+# Build with full-text extraction (slower, more comprehensive)
+zotero-mcp update-db --fulltext
 
 # Check database status
 zotero-mcp db-status
@@ -133,6 +136,24 @@ zotero-mcp db-status
 - *"Find papers conceptually similar to this abstract: [paste abstract]"*
 
 The semantic search provides similarity scores and finds papers based on conceptual understanding, not just keyword matching.
+
+### ⚡ Performance & Data Sources
+
+**v0.1.2+** introduces significant performance improvements:
+
+- **Fast by default**: `zotero-mcp update-db` now uses Zotero's web API for metadata-only indexing (much faster)
+- **Full-text on demand**: Use `--fulltext` flag to extract content from local database when needed
+- **Smart data source selection**: 
+  - Without `--fulltext`: Always uses web API (fast, works remotely)
+  - With `--fulltext`: Uses local database if available, falls back to web API
+- **Faster server startup**: Background updates now use fast API-based sync
+
+| Command | Data Source | Content Indexed | Speed | Use Case |
+|---------|-------------|-----------------|-------|-----------|
+| `update-db` | Web API | Titles, abstracts, metadata | 🚀 Fast | Daily updates, remote setups |
+| `update-db --fulltext` | Local DB (if available) | Full PDFs, notes, annotations | 🐌 Slower | Comprehensive research analysis |
+
+**Recommendation**: Use the default fast mode for regular updates, and `--fulltext` when you need comprehensive content analysis.
 
 ## 🖥️ Setup & Usage
 
@@ -258,8 +279,10 @@ zotero-mcp update --check-only             # Check for updates without installin
 zotero-mcp update --force                  # Force update even if up to date
 
 # Semantic search database management
-zotero-mcp update-db                       # Update semantic search database
+zotero-mcp update-db                       # Update semantic search database (fast, metadata-only)
+zotero-mcp update-db --fulltext             # Update with full-text extraction (comprehensive but slower)
 zotero-mcp update-db --force-rebuild       # Force complete database rebuild
+zotero-mcp update-db --fulltext --force-rebuild  # Rebuild with full-text extraction
 zotero-mcp db-status                       # Show database status and info
 
 # General
@@ -319,8 +342,9 @@ The first time you use PDF annotation features, the necessary tools will be auto
 ### Semantic Search Issues
 - **"Missing required environment variables" when running update-db**: Run `zotero-mcp setup` to configure your environment, or the CLI will automatically load settings from Claude Desktop config
 - **ChromaDB warnings**: Update to the latest version - deprecation warnings have been fixed
-- **Database update takes long**: This is normal for large libraries. Use `--limit` parameter for testing: `zotero-mcp update-db --limit 100`
+- **Database update takes long**: By default, `update-db` is fast (metadata-only). For comprehensive indexing with full-text, use `--fulltext` flag. Use `--limit` parameter for testing: `zotero-mcp update-db --limit 100`
 - **Semantic search returns no results**: Ensure the database is initialized with `zotero-mcp update-db` and check status with `zotero-mcp db-status`
+- **Limited search quality**: For better semantic search results, use `zotero-mcp update-db --fulltext` to index full-text content (requires local Zotero setup)
 - **OpenAI/Gemini API errors**: Verify your API keys are correctly set and have sufficient credits/quota
 
 ### Update Issues  
