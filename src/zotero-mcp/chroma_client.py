@@ -53,7 +53,7 @@ class OpenAIEmbeddingFunction(EmbeddingFunction):
 
     def name(self) -> str:
         """Return the name of this embedding function."""
-        return "openai"
+        return f"openai-{self.model_name}"
 
     def __call__(self, input: Documents) -> Embeddings:
         """Generate embeddings using OpenAI API."""
@@ -88,7 +88,7 @@ class GeminiEmbeddingFunction(EmbeddingFunction):
 
     def name(self) -> str:
         """Return the name of this embedding function."""
-        return "gemini"
+        return f"gemini-{self.model_name}"
 
     def __call__(self, input: Documents) -> Embeddings:
         """Generate embeddings using Gemini API."""
@@ -143,7 +143,7 @@ class ChromaClient:
         Args:
             collection_name: Name of the ChromaDB collection
             persist_directory: Directory to persist the database
-            embedding_model: Model to use for embeddings ('default', 'openai', 'gemini', 'qwen', 'embeddinggemma', or HuggingFace model name)
+            embedding_model: Model to use for embeddings ('default', 'openai', 'gemini', 'mistral', 'qwen', 'embeddinggemma', or HuggingFace model name)
             embedding_config: Configuration for the embedding model
         """
         self.collection_name = collection_name
@@ -178,37 +178,63 @@ class ChromaClient:
                 self.collection = self.client.get_collection(name=self.collection_name)
 
                 # Check if embedding functions are compatible
-                existing_ef = getattr(self.collection, '_embedding_function', None)
+                existing_ef = getattr(self.collection, "_embedding_function", None)
                 if existing_ef is not None:
-                    existing_name = getattr(existing_ef, 'name', lambda: 'default')()
-                    new_name = getattr(self.embedding_function, 'name', lambda: 'default')()
+                    existing_name = getattr(existing_ef, "name", lambda: "default")()
+                    new_name = getattr(
+                        self.embedding_function, "name", lambda: "default"
+                    )()
 
                     if existing_name != new_name:
                         # Log to stderr instead of letting ChromaDB print to stdout
-                        sys.stderr.write(f"ChromaDB: Collection exists with different embedding function: {existing_name} vs {new_name}\n")
-                        # Use the existing collection's embedding function to avoid conflicts
-                        self.embedding_function = existing_ef
+                        sys.stderr.write(
+                            f"ChromaDB: Collection exists with different embedding function: {existing_name} vs {new_name}\n"
+                        )
+                        sys.stderr.write(
+                            "⚠️  Warning: Embedding model mismatch detected. This may cause errors or poor search results.\n"
+                        )
+                        sys.stderr.write(
+                            "💡 Suggestion: Run 'zotero-mcp update-db --force-rebuild' to ensure consistency.\n"
+                        )
 
             except Exception:
                 # Collection doesn't exist, create it
                 self.collection = self.client.create_collection(
                     name=self.collection_name,
-                    embedding_function=self.embedding_function
+                    embedding_function=self.embedding_function,
                 )
 
     def _create_embedding_function(self) -> EmbeddingFunction:
         """Create the appropriate embedding function based on configuration."""
         if self.embedding_model == "openai":
-            model_name = self.embedding_config.get("model_name", "text-embedding-3-small")
+            model_name = self.embedding_config.get(
+                "model_name", "text-embedding-3-small"
+            )
             api_key = self.embedding_config.get("api_key")
             base_url = self.embedding_config.get("base_url")
-            return OpenAIEmbeddingFunction(model_name=model_name, api_key=api_key, base_url=base_url)
+            return OpenAIEmbeddingFunction(
+                model_name=model_name, api_key=api_key, base_url=base_url
+            )
 
         elif self.embedding_model == "gemini":
-            model_name = self.embedding_config.get("model_name", "models/text-embedding-004")
+            model_name = self.embedding_config.get(
+                "model_name", "models/text-embedding-004"
+            )
             api_key = self.embedding_config.get("api_key")
             base_url = self.embedding_config.get("base_url")
-            return GeminiEmbeddingFunction(model_name=model_name, api_key=api_key, base_url=base_url)
+            return GeminiEmbeddingFunction(
+                model_name=model_name, api_key=api_key, base_url=base_url
+            )
+
+        elif self.embedding_model == "mistral":
+            model_name = self.embedding_config.get("model_name", "mistral-embed")
+            api_key = self.embedding_config.get("api_key")
+            base_url = self.embedding_config.get(
+                "base_url", "https://api.mistral.ai/v1"
+            )
+            return OpenAIEmbeddingFunction(
+                model_name=model_name, api_key=api_key, base_url=base_url
+            )
 
         elif self.embedding_model == "qwen":
             model_name = self.embedding_config.get("model_name", "Qwen/Qwen3-Embedding-0.6B")
@@ -431,6 +457,19 @@ def create_chroma_client(config_path: str | None = None) -> ChromaClient:
             }
             if gemini_base_url:
                 config["embedding_config"]["base_url"] = gemini_base_url
+
+    elif config["embedding_model"] == "mistral":
+        mistral_api_key = os.getenv("MISTRAL_API_KEY")
+        mistral_model = os.getenv("MISTRAL_EMBEDDING_MODEL", "mistral-embed")
+        mistral_base_url = os.getenv(
+            "MISTRAL_BASE_URL", "https://api.mistral.ai/v1"
+        )
+        if mistral_api_key:
+            config["embedding_config"] = {
+                "api_key": mistral_api_key,
+                "model_name": mistral_model,
+                "base_url": mistral_base_url,
+            }
 
     return ChromaClient(
         collection_name=config["collection_name"],

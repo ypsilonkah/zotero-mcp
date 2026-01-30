@@ -146,12 +146,13 @@ def setup_semantic_search(existing_semantic_config: dict = None, semantic_config
     print("1. Default (all-MiniLM-L6-v2) - Free, runs locally")
     print("2. OpenAI - Better quality, requires API key")
     print("3. Gemini - Better quality, requires API key")
+    print("4. Mistral - High quality, requires API key")
 
     while True:
-        choice = input("\nChoose embedding model (1-3): ").strip()
-        if choice in ["1", "2", "3"]:
+        choice = input("\nChoose embedding model (1-4): ").strip()
+        if choice in ["1", "2", "3", "4"]:
             break
-        print("Please enter 1, 2, or 3")
+        print("Please enter 1, 2, 3, or 4")
 
     config = {}
 
@@ -226,6 +227,25 @@ def setup_semantic_search(existing_semantic_config: dict = None, semantic_config
             print(f"Using custom Gemini base URL: {base_url}")
         else:
             print("Using default Gemini base URL")
+
+    elif choice == "4":
+        config["embedding_model"] = "mistral"
+        config["embedding_config"] = {"model_name": "mistral-embed"}
+
+        # Get API key
+        api_key = getpass.getpass("Enter your Mistral API key (hidden): ").strip()
+        if api_key:
+            config["embedding_config"]["api_key"] = api_key
+        else:
+            print("Warning: No API key provided. Set MISTRAL_API_KEY environment variable.")
+
+        # Get optional base URL
+        base_url = input("Enter custom Mistral base URL (leave blank for https://api.mistral.ai/v1): ").strip()
+        if base_url:
+            config["embedding_config"]["base_url"] = base_url
+            print(f"Using custom Mistral base URL: {base_url}")
+        else:
+            print("Using default Mistral base URL")
 
     # Configure update frequency
     print("\n=== Database Update Configuration ===")
@@ -432,6 +452,14 @@ def update_claude_config(config_path, zotero_mcp_path, local=True, api_key=None,
                 env_settings["GEMINI_EMBEDDING_MODEL"] = model
             if base_url := embedding_config.get("base_url"):
                 env_settings["GEMINI_BASE_URL"] = base_url
+
+        elif semantic_config.get("embedding_model") == "mistral":
+            if api_key := embedding_config.get("api_key"):
+                env_settings["MISTRAL_API_KEY"] = api_key
+            if model := embedding_config.get("model_name"):
+                env_settings["MISTRAL_EMBEDDING_MODEL"] = model
+            if base_url := embedding_config.get("base_url"):
+                env_settings["MISTRAL_BASE_URL"] = base_url
 
     # Add or update zotero config
     config["mcpServers"]["zotero"] = {

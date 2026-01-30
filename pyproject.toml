@@ -1,55 +1,51 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
 name = "zotero-mcp"
-dynamic = ["version"]
-authors = [
-  { name = "54yyyu", email = "54yyyu@github.com" },
-]
 description = "A Model Context Protocol server for Zotero"
 readme = "README.md"
 requires-python = ">=3.10"
+authors = [
+  { name = "Yannick", email = "kontakt@yannickkalff.de" },
+]
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
 ]
 dependencies = [
-    "pyzotero>=1.5.0",
-    "mcp>=1.2.0",
-    "python-dotenv>=1.0.0",
-    "markitdown[pdf]",
-    "pydantic>=2.0.0",
-    "requests>=2.28.0",
-    "fastmcp>=2.14.0",
-    "chromadb>=0.4.0",
-    "sentence-transformers>=2.2.0",
-    "openai>=1.0.0",
-    "google-genai>=0.7.0",
+  "chromadb>=0.4.0",
+  "fastmcp>=2.14.0",
+  "google-genai>=0.7.0",
+  "markitdown[pdf]",
+  "mcp>=1.2.0",
+  "openai>=1.0.0",
+  "pydantic>=2.0.0",
+  "python-dotenv>=1.0.0",
+  "pyzotero>=1.5.0",
+  "requests>=2.28.0",
+  "sentence-transformers>=2.2.0",
 ]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0",
-    "black>=23.0.0",
-    "isort>=5.12.0",
-]
-
-[project.urls]
-"Homepage" = "https://github.com/54yyyu/zotero-mcp"
-"Bug Tracker" = "https://github.com/54yyyu/zotero-mcp/issues"
+dynamic = ["version"]
 
 [project.scripts]
 zotero-mcp = "zotero_mcp.cli:main"
 
-[tool.hatch.version]
-path = "src/zotero_mcp/_version.py"
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0.0",
+  "black>=23.0.0",
+  "isort>=5.12.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.black]
 line-length = 88
 target-version = ["py310"]
+
+[tool.hatch.version]
+path = "src/zotero_mcp/_version.py"
 
 [tool.isort]
 profile = "black"
