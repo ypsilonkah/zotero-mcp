@@ -158,6 +158,7 @@ class ChromaClient:
             persist_directory = str(config_dir / "chroma_db")
 
         self.persist_directory = persist_directory
+        self.embedding_mismatch = False
 
         # Initialize ChromaDB client with stdout suppression
         with suppress_stdout():
@@ -191,6 +192,7 @@ class ChromaClient:
 
                     # Only warn if we have a record of the existing name and it differs
                     if existing_name and existing_name != new_name:
+                        self.embedding_mismatch = True
                         sys.stderr.write(
                             f"ChromaDB: Collection exists with different embedding function: {existing_name} vs {new_name}\n"
                         )

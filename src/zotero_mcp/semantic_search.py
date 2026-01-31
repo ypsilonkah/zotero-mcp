@@ -576,6 +576,13 @@ class ZoteroSemanticSearch:
         }
 
         try:
+            # Check for embedding mismatch unless forcing rebuild
+            if not force_full_rebuild and getattr(self.chroma_client, "embedding_mismatch", False):
+                raise ValueError(
+                    "Embedding model mismatch detected (database uses a different model than currently configured). "
+                    "You MUST run with '--force-rebuild' to fix this."
+                )
+
             # Reset collection if force rebuild
             if force_full_rebuild:
                 logger.info("Force rebuilding database...")
