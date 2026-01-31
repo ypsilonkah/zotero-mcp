@@ -174,19 +174,23 @@ class ChromaClient:
 
             # Get or create collection with embedding function handling
             try:
-                # Try to get existing collection first
-                self.collection = self.client.get_collection(name=self.collection_name)
+                # Try to get existing collection first, passing the embedding function
+                # so ChromaDB uses it (and doesn't default to the built-in one).
+                self.collection = self.client.get_collection(
+                    name=self.collection_name,
+                    embedding_function=self.embedding_function
+                )
 
-                # Check if embedding functions are compatible
-                existing_ef = getattr(self.collection, "_embedding_function", None)
-                if existing_ef is not None:
-                    existing_name = getattr(existing_ef, "name", lambda: "default")()
+                # Check metadata for embedding function compatibility
+                # This relies on metadata set during creation/reset (added in newer versions)
+                if self.collection.metadata:
+                    existing_name = self.collection.metadata.get("embedding_function")
                     new_name = getattr(
                         self.embedding_function, "name", lambda: "default"
                     )()
 
-                    if existing_name != new_name:
-                        # Log to stderr instead of letting ChromaDB print to stdout
+                    # Only warn if we have a record of the existing name and it differs
+                    if existing_name and existing_name != new_name:
                         sys.stderr.write(
                             f"ChromaDB: Collection exists with different embedding function: {existing_name} vs {new_name}\n"
                         )
@@ -198,10 +202,15 @@ class ChromaClient:
                         )
 
             except Exception:
-                # Collection doesn't exist, create it
+                # Collection doesn't exist, create it with metadata
                 self.collection = self.client.create_collection(
                     name=self.collection_name,
                     embedding_function=self.embedding_function,
+                    metadata={
+                        "embedding_function": getattr(
+                            self.embedding_function, "name", lambda: "default"
+                        )()
+                    }
                 )
 
     def _create_embedding_function(self) -> EmbeddingFunction:
@@ -368,7 +377,12 @@ class ChromaClient:
             self.client.delete_collection(name=self.collection_name)
             self.collection = self.client.create_collection(
                 name=self.collection_name,
-                embedding_function=self.embedding_function
+                embedding_function=self.embedding_function,
+                metadata={
+                    "embedding_function": getattr(
+                        self.embedding_function, "name", lambda: "default"
+                    )()
+                }
             )
             logger.info(f"Reset ChromaDB collection '{self.collection_name}'")
         except Exception as e:
