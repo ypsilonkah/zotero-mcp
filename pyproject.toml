@@ -4,7 +4,7 @@ description = "A Model Context Protocol server for Zotero"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-  { name = "Yannick", email = "kontakt@yannickkalff.de" },
+  { name = "54yyyu", email = "54yyyu@github.com" },
 ]
 classifiers = [
   "License :: OSI Approved :: MIT License",
