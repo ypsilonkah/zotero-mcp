@@ -29,6 +29,7 @@ class ZoteroItem:
     creators: str | None = None
     fulltext: str | None = None
     fulltext_source: str | None = None  # 'pdf' or 'html'
+    fulltext_attempted: bool = False
     notes: str | None = None
     extra: str | None = None
     date_added: str | None = None
@@ -380,6 +381,25 @@ class LocalZoteroReader:
     # Public helper to quickly check full text metadata for item
     def get_fulltext_meta_for_item(self, item_id: int) -> tuple[str, str] | None:
         return self._get_fulltext_meta_for_item(item_id)
+
+    def has_extractable_fulltext(self, item_id: int) -> bool:
+        """
+        Check if item has a valid file attachment (PDF or HTML) that exists.
+        
+        Args:
+            item_id: The Zotero item ID
+            
+        Returns:
+            True if a valid extractable file exists, False otherwise.
+        """
+        for key, path, ctype in self._iter_parent_attachments(item_id):
+            resolved = self._resolve_attachment_path(key, path or "")
+            if resolved and resolved.exists():
+                if ctype == "application/pdf":
+                    return True
+                if (ctype or "").startswith("text/html"):
+                    return True
+        return False
 
     # Public helper to extract fulltext on demand for a specific item
     def extract_fulltext_for_item(self, item_id: int) -> tuple[str, str] | None:

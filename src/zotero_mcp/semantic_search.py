@@ -180,6 +180,9 @@ class ZoteroSemanticSearch:
             metadata["has_fulltext"] = True
             if data.get("fulltextSource"):
                 metadata["fulltext_source"] = data.get("fulltextSource")
+        
+        if data.get("fulltextAttempted"):
+            metadata["fulltext_attempted"] = True
 
         # Add tags as a single string
         if tags := data.get("tags"):
@@ -371,11 +374,20 @@ class ZoteroSemanticSearch:
                             existing_metadata = chroma_client.get_document_metadata(it.key)
                             if existing_metadata:
                                 chroma_has_fulltext = existing_metadata.get("has_fulltext", False)
-                                local_has_fulltext = len(reader.get_fulltext_meta_for_item(it.item_id)) > 0
+                                chroma_attempted = existing_metadata.get("fulltext_attempted", False)
+                                local_has_fulltext = reader.has_extractable_fulltext(it.item_id)
+                                
+                                chroma_mod = existing_metadata.get("date_modified", "")
+                                local_mod = it.date_modified or ""
+                                is_newer = local_mod > chroma_mod if (local_mod and chroma_mod) else True
 
-                                # Skip only if chroma does not have the fulltext embedding but local does (e.g. the users updated it)
-                                if not chroma_has_fulltext and local_has_fulltext:
-                                    # Document exists but lacks fulltext - we need to update it
+                                # Update if:
+                                # 1. Metadata is newer (local modification)
+                                # 2. OR fulltext is missing in Chroma AND we haven't tried extracting it yet AND it exists locally
+                                #    (This handles the case where we added a PDF but haven't indexed it yet, 
+                                #     while avoiding loops for unreadable PDFs)
+                                if is_newer or (not chroma_has_fulltext and not chroma_attempted and local_has_fulltext):
+                                    # Document exists but needs update
                                     updated_existing += 1
                                 else:
                                     should_extract = False
@@ -391,6 +403,11 @@ class ZoteroSemanticSearch:
                                         it.fulltext, it.fulltext_source = text[0], text[1]
                                     else:
                                         it.fulltext = text
+                            
+                            # Mark that we attempted extraction (even if it failed/returned empty)
+                            # This prevents infinite loops for unreadable files
+                            it.fulltext_attempted = True
+                            
                             extracted += 1
                             items_to_process.append(it)
 
@@ -436,6 +453,7 @@ class ZoteroSemanticSearch:
                             # Include fulltext only when extracted
                             "fulltext": getattr(item, 'fulltext', None) or "" if extract_fulltext else "",
                             "fulltextSource": getattr(item, 'fulltext_source', None) or "" if extract_fulltext else "",
+                            "fulltextAttempted": getattr(item, 'fulltext_attempted', False),
                             "dateAdded": item.date_added,
                             "dateModified": item.date_modified,
                             "creators": self._parse_creators_string(item.creators) if item.creators else []
