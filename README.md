@@ -1,4 +1,5 @@
 # Zotero MCP: Chat with your Research Library—Local or Web—in Claude, ChatGPT, and more.
+Original work by --- all credits to --- 54yyyu (github.com/54yyyu/zotero-mcp). 
 
 <p align="center">
   <a href="https://www.zotero.org/">
